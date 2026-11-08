@@ -1,0 +1,30 @@
+---
+- name: Manage Blue-Green Deployment on Kubernetes
+  hosts: localhost
+  connection: local
+  vars:
+    active_version: "blue" # Change to "green" for subsequent deployments
+  tasks:
+    - name: Ensure Kubernetes namespace exists
+      kubernetes.core.k8s:
+        state: present
+        src: "../k8s/namespace.yml"
+
+    - name: Deploy the inactive/new environment version
+      kubernetes.core.k8s:
+        state: present
+        src: "../k8s/app-deployment-{{ active_version }}.yml"
+
+    - name: Switch service traffic selector to the new version
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: web-app-service
+            namespace: production
+          spec:
+            selector:
+              app: web-app
+              version: "{{ active_version }}"
