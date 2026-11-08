@@ -1,21 +1,28 @@
 ---
-- name: Manage Blue-Green Deployment on Kubernetes
+- name: Deploy Blue-Green Application on Minikube via Ansible
   hosts: localhost
-  connection: local
+  gather_facts: no
   vars:
-    active_version: "blue" # Change to "green" for subsequent deployments
+    # Set to 'blue' or 'green' to switch traffic
+    target_version: "green" 
+
   tasks:
     - name: Ensure Kubernetes namespace exists
       kubernetes.core.k8s:
         state: present
         src: "../k8s/namespace.yml"
 
-    - name: Deploy the inactive/new environment version
+    - name: Deploy Blue application version
       kubernetes.core.k8s:
         state: present
-        src: "../k8s/app-deployment-{{ active_version }}.yml"
+        src: "../k8s/app-blue.yml"
 
-    - name: Switch service traffic selector to the new version
+    - name: Deploy Green application version
+      kubernetes.core.k8s:
+        state: present
+        src: "../k8s/app-green.yml"
+
+    - name: Switch service selector traffic to the target version
       kubernetes.core.k8s:
         state: present
         definition:
@@ -27,4 +34,4 @@
           spec:
             selector:
               app: web-app
-              version: "{{ active_version }}"
+              version: "{{ target_version }}"
